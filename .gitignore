@@ -1,0 +1,14 @@
+# Build artifacts
+.pio/
+.vscode/
+build/
+bin/
+download/
+
+# Diagnostic temporary sketches
+esp32_diag/
+touch_diag/
+
+# OS files
+.DS_Store
+*.swp
