@@ -8,7 +8,7 @@ static Arduino_DataBus *bus = new Arduino_SWSPI(
     TFT_SCK /* 48 */, TFT_SDA /* 47 */, GFX_NOT_DEFINED /* MISO */
 );
 
-// ESP32-S3 RGB Panel Configuration with 11MHz prefer_speed (34 arguments for Arduino_GFX 1.6.7)
+// Proven RGB Panel settings for ESP32-4848S040
 static Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     TFT_DE /* 18 */, TFT_VSYNC /* 17 */, TFT_HSYNC /* 16 */, TFT_PCLK /* 21 */,
     TFT_R0 /* 11 */, TFT_R1 /* 12 */, TFT_R2 /* 13 */, TFT_R3 /* 14 */, TFT_R4 /* 0 */,
@@ -16,14 +16,14 @@ static Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     TFT_B0 /* 4 */, TFT_B1 /* 5 */, TFT_B2 /* 6 */, TFT_B3 /* 7 */, TFT_B4 /* 15 */,
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
     1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */,
-    0 /* pclk_active_neg */, 11000000 /* prefer_speed = 11MHz per factory demo */, false /* useBigEndian */,
+    0 /* pclk_active_neg */, 12000000 /* prefer_speed */, false /* useBigEndian */,
     0 /* de_idle_high */, 0 /* pclk_idle_high */, 0 /* bounce_buffer_size_px */
 );
 
-// ST7701S RGB Display with Type 1 init operations and Rotation 3
+// Proven ST7701S Type 9 Init operations (zero flicker & correct colors)
 static Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     LCD_WIDTH, LCD_HEIGHT, rgbpanel, 3 /* rotation: 3 is upright */, true /* auto_flush */,
-    bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations)
+    bus, GFX_NOT_DEFINED /* RST */, st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
 );
 
 static lv_disp_draw_buf_t draw_buf;
