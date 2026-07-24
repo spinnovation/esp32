@@ -5,13 +5,20 @@
 #include "gif_data.h"
 
 // ============================================================================
-// Animated GIF Expression Player Engine for ESP32-S3
+// State-Based GIF Expression Engine for ESP32-S3
+// Default (Idle/Running), Surprise (Paused), Crying (Finished)
 // ============================================================================
 
+enum GifMode {
+    MODE_NONE = -1,
+    MODE_DEFAULT = 0,
+    MODE_SURPRISE,
+    MODE_CRYING
+};
+
 static AnimatedGIF gif;
-static int current_gif_index = 0;
+static GifMode active_gif_mode = MODE_NONE;
 static bool gif_playing = false;
-static uint32_t last_gif_switch_time = 0;
 
 static lv_obj_t* canvas_gif;
 static lv_color_t canvas_buf[240 * 100];
@@ -79,29 +86,47 @@ static void GIFDraw(GIFDRAW *pDraw) {
     }
 }
 
-static void play_random_gif() {
+static void set_gif_mode(GifMode mode) {
+    if (active_gif_mode == mode && gif_playing) return;
+
+    active_gif_mode = mode;
     if (gif_playing) {
         gif.close();
+        gif_playing = false;
     }
 
-    // Pick random GIF index
-    current_gif_index = random(0, NUM_GIFS);
+    const uint8_t* pData = gif_data_default;
+    size_t sz = GIF_DEFAULT_SIZE;
+
+    if (mode == MODE_SURPRISE) {
+        pData = gif_data_surprise;
+        sz = GIF_SURPRISE_SIZE;
+    } else if (mode == MODE_CRYING) {
+        pData = gif_data_crying;
+        sz = GIF_CRYING_SIZE;
+    }
+
     gif.begin(GIF_PALETTE_RGB565_LE);
-    if (gif.open((uint8_t*)GIF_LIST[current_gif_index].data, GIF_LIST[current_gif_index].size, GIFDraw)) {
+    if (gif.open((uint8_t*)pData, sz, GIFDraw)) {
         gif_playing = true;
-        last_gif_switch_time = millis();
     }
 }
 
 static void update_gif_player() {
-    if (!gif_playing || (millis() - last_gif_switch_time > 5000)) { // Switch random GIF every 5s
-        play_random_gif();
+    TimerState st = g_timer.get_state();
+
+    if (st == TIMER_PAUSED) {
+        set_gif_mode(MODE_SURPRISE);
+    } else if (st == TIMER_FINISHED) {
+        set_gif_mode(MODE_CRYING);
+    } else {
+        set_gif_mode(MODE_DEFAULT);
     }
 
     if (gif_playing) {
         int res = gif.playFrame(false, NULL);
         if (res == 0) {
-            play_random_gif(); // GIF loop finished -> play next random GIF
+            gif.reset(); // Continuous loop for current state GIF
         }
     }
     lv_obj_invalidate(canvas_gif);
@@ -162,14 +187,16 @@ static void update_digit_value(int idx, int val) {
 }
 
 void ui_set_expression(int expr_id) {
-    play_random_gif();
+    if (expr_id == 1) set_gif_mode(MODE_SURPRISE);
+    else if (expr_id == 2) set_gif_mode(MODE_CRYING);
+    else set_gif_mode(MODE_DEFAULT);
 }
 
 static void ui_update_cb(lv_timer_t* timer) {
     anim_tick++;
     g_timer.update();
 
-    // Play Random GIF Animation
+    // Play State-Based GIF Animation
     update_gif_player();
 
     // Update 120px Bold Digital Segments
@@ -200,15 +227,14 @@ void ui_timer_init() {
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
     // ==========================================
-    // 1. TOP SECTION: Random GIF Expression Canvas (~120px)
+    // 1. TOP SECTION: State-Based GIF Canvas (~120px)
     // ==========================================
     canvas_gif = lv_canvas_create(scr);
     lv_canvas_set_buffer(canvas_gif, canvas_buf, 240, 100, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_fill_bg(canvas_gif, lv_color_hex(0x0B0D14), LV_OPA_COVER);
     lv_obj_align(canvas_gif, LV_ALIGN_TOP_MID, 0, 15);
 
-    // Initialize Random GIF
-    play_random_gif();
+    set_gif_mode(MODE_DEFAULT);
 
     // DIVIDER LINE 1
     static lv_point_t line1_points[] = { {20, 125}, {460, 125} };
@@ -262,7 +288,7 @@ void ui_timer_init() {
     lv_obj_align(label_notice, LV_ALIGN_BOTTOM_MID, 0, -22);
     lv_label_set_text(label_notice, "WELCOME SEUNGPIL!");
 
-    ui_refresh_timer = lv_timer_create(ui_update_cb, 100, NULL);
+    ui_refresh_timer = lv_timer_create(ui_update_cb, 80, NULL);
 }
 
 void ui_timer_update() {
