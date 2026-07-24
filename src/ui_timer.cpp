@@ -5,7 +5,7 @@
 #include "gif_data.h"
 
 // ============================================================================
-// State-Based GIF Expression Engine for ESP32-S3
+// State-Based GIF Expression Engine for ESP32-S3 (300x92 - 85% Top Frame)
 // Default (Idle/Running), Surprise (Paused), Crying (Finished)
 // ============================================================================
 
@@ -21,7 +21,7 @@ static GifMode active_gif_mode = MODE_NONE;
 static bool gif_playing = false;
 
 static lv_obj_t* canvas_gif;
-static lv_color_t canvas_buf[240 * 100];
+static lv_color_t canvas_buf[300 * 92];
 
 // 4 Digit objects for 120px Vector Bold Digital Timer Display
 static lv_obj_t* digit_segs[4][7];
@@ -54,13 +54,13 @@ static void GIFDraw(GIFDRAW *pDraw) {
     int x, y, iWidth;
 
     iWidth = pDraw->iWidth;
-    if (iWidth + pDraw->iX > 240)
-        iWidth = 240 - pDraw->iX;
+    if (iWidth + pDraw->iX > 300)
+        iWidth = 300 - pDraw->iX;
 
     usPalette = pDraw->pPalette;
     y = pDraw->iY + pDraw->y;
 
-    if (y >= 100) return;
+    if (y >= 92) return;
 
     s = pDraw->pPixels;
     if (pDraw->ucDisposalMethod == 2) {
@@ -79,8 +79,8 @@ static void GIFDraw(GIFDRAW *pDraw) {
             uint8_t g = ((rgb565 >> 5) & 0x3F) << 2;
             uint8_t b = (rgb565 & 0x1F) << 3;
             int px = pDraw->iX + x;
-            if (px < 240) {
-                canvas_buf[y * 240 + px] = lv_color_make(r, g, b);
+            if (px < 300) {
+                canvas_buf[y * 300 + px] = lv_color_make(r, g, b);
             }
         }
     }
@@ -94,6 +94,9 @@ static void set_gif_mode(GifMode mode) {
         gif.close();
         gif_playing = false;
     }
+
+    // Clear canvas background
+    memset(canvas_buf, 0x0B, sizeof(canvas_buf));
 
     const uint8_t* pData = gif_data_default;
     size_t sz = GIF_DEFAULT_SIZE;
@@ -126,7 +129,7 @@ static void update_gif_player() {
     if (gif_playing) {
         int res = gif.playFrame(false, NULL);
         if (res == 0) {
-            gif.reset(); // Continuous loop for current state GIF
+            gif.reset(); // Loop current state GIF continuously
         }
     }
     lv_obj_invalidate(canvas_gif);
@@ -227,12 +230,12 @@ void ui_timer_init() {
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
     // ==========================================
-    // 1. TOP SECTION: State-Based GIF Canvas (~120px)
+    // 1. TOP SECTION: 300x92 GIF Canvas (85% Top Frame Height)
     // ==========================================
     canvas_gif = lv_canvas_create(scr);
-    lv_canvas_set_buffer(canvas_gif, canvas_buf, 240, 100, LV_IMG_CF_TRUE_COLOR);
+    lv_canvas_set_buffer(canvas_gif, canvas_buf, 300, 92, LV_IMG_CF_TRUE_COLOR);
     lv_canvas_fill_bg(canvas_gif, lv_color_hex(0x0B0D14), LV_OPA_COVER);
-    lv_obj_align(canvas_gif, LV_ALIGN_TOP_MID, 0, 15);
+    lv_obj_align(canvas_gif, LV_ALIGN_TOP_MID, 0, 18);
 
     set_gif_mode(MODE_DEFAULT);
 

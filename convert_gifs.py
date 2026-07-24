@@ -5,7 +5,7 @@ from PIL import Image, ImageSequence
 exp_dir = '/Users/onkistudio/software/esp32/expression'
 out_header = '/Users/onkistudio/software/esp32/include/gif_data.h'
 
-target_w, target_h = 240, 100
+target_w, target_h = 300, 92  # Fills ~85% of top section height
 
 gifs = {
     'default': 'default.gif',

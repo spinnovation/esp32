@@ -13,8 +13,8 @@ void handle_serial_commands() {
 
         Serial.printf("[MAC CMD RECEIVED] %s\n", cmd.c_str());
 
-        if (cmd.equalsIgnoreCase("START") || cmd.equalsIgnoreCase("S")) {
-            g_timer.start();
+        if (cmd.equalsIgnoreCase("TOGGLE") || cmd.equalsIgnoreCase("T") || cmd.equalsIgnoreCase(" ") || cmd.equalsIgnoreCase("START") || cmd.equalsIgnoreCase("S")) {
+            g_timer.toggle();
         } else if (cmd.equalsIgnoreCase("PAUSE") || cmd.equalsIgnoreCase("P")) {
             g_timer.pause();
         } else if (cmd.equalsIgnoreCase("RESET") || cmd.equalsIgnoreCase("R")) {
@@ -47,7 +47,7 @@ void setup() {
     g_timer.begin(3000);
     ui_timer_init();
 
-    Serial.println("3-Section Monitor Ready! Control via Mac USB Serial Commands (START/PAUSE/RESET/EXPR:id/MSG:text).");
+    Serial.println("3-Section Monitor Ready! Control via Mac USB Serial Commands (TOGGLE/RESET/EXPR:id/MSG:text).");
 }
 
 void loop() {
