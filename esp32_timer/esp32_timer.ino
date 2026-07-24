@@ -19,6 +19,12 @@ void handle_serial_commands() {
             g_timer.pause();
         } else if (cmd.equalsIgnoreCase("RESET") || cmd.equalsIgnoreCase("R")) {
             g_timer.reset();
+        } else if (cmd.startsWith("EXPR:")) {
+            int expr_id = cmd.substring(5).toInt();
+            ui_set_expression(expr_id);
+        } else if (cmd.startsWith("E:")) {
+            int expr_id = cmd.substring(2).toInt();
+            ui_set_expression(expr_id);
         } else if (cmd.startsWith("MSG:")) {
             String msg = cmd.substring(4);
             g_timer.set_message(msg.c_str());
@@ -41,7 +47,7 @@ void setup() {
     g_timer.begin(3000);
     ui_timer_init();
 
-    Serial.println("3-Section Monitor Ready! Control via Mac USB Serial Commands (START/PAUSE/RESET/MSG:text).");
+    Serial.println("3-Section Monitor Ready! Control via Mac USB Serial Commands (START/PAUSE/RESET/EXPR:id/MSG:text).");
 }
 
 void loop() {

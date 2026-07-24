@@ -3,8 +3,28 @@
 #include "config.h"
 
 // ============================================================================
-// FluxGarage RoboEyes Expression Engine Implementation for LVGL
+// Akno Robot 15 Facial Expression Engine Implementation
 // ============================================================================
+
+enum AknoExpr {
+    EXPR_NORMAL = 0,
+    EXPR_HAPPY,
+    EXPR_SAD,
+    EXPR_ANGRY,
+    EXPR_UPSET,
+    EXPR_CUTE,
+    EXPR_SUSPICIOUS,
+    EXPR_IAM,
+    EXPR_YOUMADEMEE,
+    EXPR_WONDER,
+    EXPR_DOWN,
+    EXPR_RIGHT,
+    EXPR_LEFT,
+    EXPR_UP,
+    EXPR_BLINK
+};
+
+static AknoExpr current_expr = EXPR_NORMAL;
 
 static lv_obj_t* eye_left;
 static lv_obj_t* eye_right;
@@ -23,10 +43,6 @@ static lv_obj_t* label_notice;
 static lv_timer_t* ui_refresh_timer;
 
 static uint32_t anim_frame = 0;
-static int gaze_x = 0; // -15 (Left) to +15 (Right)
-static int gaze_y = 0; // -10 (Up) to +10 (Down)
-static int gaze_target_x = 0;
-static int gaze_target_y = 0;
 
 // Segment Lookup Table for Digits 0-9
 static const bool seg_map[10][7] = {
@@ -96,122 +112,151 @@ static void update_digit_value(int idx, int val) {
     }
 }
 
-// FluxGarage RoboEyes Expression Update Logic
-static void update_fluxgarage_roboeyes() {
+// Set Akno Expression
+void ui_set_expression(int expr_id) {
+    if (expr_id >= 0 && expr_id <= 14) {
+        current_expr = (AknoExpr)expr_id;
+    }
+}
+
+// Akno Robot 15 Facial Expressions Renderer
+static void update_akno_expressions() {
     anim_frame++;
     TimerState st = g_timer.get_state();
 
-    // Smooth Gaze Movement (Idle Look Around)
-    if (st == TIMER_STOPPED) {
-        if (anim_frame % 20 == 0) {
-            int rnd = random(0, 5);
-            if (rnd == 0) { gaze_target_x = 0; gaze_target_y = 0; }        // Center
-            else if (rnd == 1) { gaze_target_x = -15; gaze_target_y = 0; }  // Left
-            else if (rnd == 2) { gaze_target_x = 15; gaze_target_y = 0; }   // Right
-            else if (rnd == 3) { gaze_target_x = 0; gaze_target_y = -8; }   // Up
-            else { gaze_target_x = 0; gaze_target_y = 8; }                  // Down
-        }
-    } else {
-        gaze_target_x = 0;
-        gaze_target_y = 0;
-    }
-
-    gaze_x += (gaze_target_x - gaze_x) / 2;
-    gaze_y += (gaze_target_y - gaze_y) / 2;
-
-    int left_eye_x = -50 + gaze_x;
-    int right_eye_x = 50 + gaze_x;
-    int eye_y = 0 + gaze_y;
-
-    // Default Eye Sizes
+    // Default Eye Layout
+    int left_x = -50;
+    int right_x = 50;
+    int eye_y = 0;
     int eye_w = 48;
     int eye_h = 48;
-    int border_r = 24;
+    int radius = 24;
 
-    // Default Eyelid Overlays Hidden
+    uint32_t color_left = 0x00E5FF;  // Neon Cyan
+    uint32_t color_right = 0x00E5FF;
+
     lv_obj_set_size(eyelid_top_left, 0, 0);
     lv_obj_set_size(eyelid_top_right, 0, 0);
     lv_obj_set_style_bg_opa(eyelid_bottom_left, LV_OPA_TRANSP, 0);
     lv_obj_set_style_bg_opa(eyelid_bottom_right, LV_OPA_TRANSP, 0);
     lv_obj_add_flag(sweat_drop, LV_OBJ_FLAG_HIDDEN);
 
-    if (st == TIMER_RUNNING) {
-        // ANGRY / FOCUSED MOOD (FluxGarage Angry Mode: Angled Eyelids + Neon Cyan)
-        eye_w = 52;
-        eye_h = 46;
-        border_r = 20;
+    // Auto State Override if timer running/paused/finished
+    AknoExpr expr = current_expr;
+    if (st == TIMER_RUNNING && current_expr == EXPR_NORMAL) expr = EXPR_ANGRY;
+    else if (st == TIMER_PAUSED && current_expr == EXPR_NORMAL) expr = EXPR_SAD;
+    else if (st == TIMER_FINISHED && current_expr == EXPR_NORMAL) expr = EXPR_HAPPY;
 
-        lv_obj_set_style_bg_color(eye_left, lv_color_hex(0x00E5FF), 0);
-        lv_obj_set_style_bg_color(eye_right, lv_color_hex(0x00E5FF), 0);
+    switch (expr) {
+        case EXPR_HAPPY: // 1. Happy (^ ^)
+            eye_w = 54; eye_h = 54; radius = 27;
+            color_left = 0xFFD700; color_right = 0xFFD700; // Gold
+            lv_obj_set_style_bg_opa(eyelid_bottom_left, LV_OPA_COVER, 0);
+            lv_obj_set_style_bg_opa(eyelid_bottom_right, LV_OPA_COVER, 0);
+            if (anim_frame % 2 == 0) eye_y -= 3;
+            break;
 
-        // Top Angry Eyelids
-        lv_obj_set_size(eyelid_top_left, 56, 16);
-        lv_obj_set_size(eyelid_top_right, 56, 16);
-        lv_obj_align_to(eyelid_top_left, eye_left, LV_ALIGN_TOP_MID, 0, -4);
-        lv_obj_align_to(eyelid_top_right, eye_right, LV_ALIGN_TOP_MID, 0, -4);
+        case EXPR_SAD: // 2. Sad / Crying (T T)
+            eye_w = 44; eye_h = 16; radius = 8;
+            color_left = 0xFF3366; color_right = 0xFF3366;
+            lv_obj_clear_flag(sweat_drop, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_align(sweat_drop, LV_ALIGN_CENTER, 85, -10 + ((anim_frame * 3) % 40));
+            break;
 
-    } else if (st == TIMER_PAUSED) {
-        // TIRED / SAD MOOD + SWEAT DROP (FluxGarage Tired Mode + Sweat Animation)
-        eye_w = 46;
-        eye_h = 16; // Drooping eyes
-        border_r = 8;
+        case EXPR_ANGRY: // 3. Angry (> <)
+            eye_w = 54; eye_h = 42; radius = 16;
+            color_left = 0xFF3300; color_right = 0xFF3300;
+            lv_obj_set_size(eyelid_top_left, 56, 18);
+            lv_obj_set_size(eyelid_top_right, 56, 18);
+            lv_obj_align_to(eyelid_top_left, eye_left, LV_ALIGN_TOP_MID, 0, -4);
+            lv_obj_align_to(eyelid_top_right, eye_right, LV_ALIGN_TOP_MID, 0, -4);
+            break;
 
-        lv_obj_set_style_bg_color(eye_left, lv_color_hex(0xFF3366), 0); // Sad Red/Pink
-        lv_obj_set_style_bg_color(eye_right, lv_color_hex(0xFF3366), 0);
+        case EXPR_UPSET: // 4. Upset (Pouting)
+            eye_w = 40; eye_h = 30; radius = 12;
+            color_left = 0xFF9900; color_right = 0xFF9900;
+            left_x = -40; right_x = 40;
+            break;
 
-        // Sweat Drop Falling Animation
-        lv_obj_clear_flag(sweat_drop, LV_OBJ_FLAG_HIDDEN);
-        int drop_y = -10 + ((anim_frame * 3) % 40);
-        lv_obj_align(sweat_drop, LV_ALIGN_CENTER, 85, drop_y);
+        case EXPR_CUTE: // 5. Cute (Sparkling Big Eyes)
+            eye_w = 58; eye_h = 58; radius = 29;
+            color_left = 0xFF00FF; color_right = 0xFF00FF; // Magenta
+            if ((anim_frame / 4) % 2 == 0) { eye_w = 60; eye_h = 60; }
+            break;
 
-    } else if (st == TIMER_FINISHED) {
-        // HAPPY / LAUGH MOOD (FluxGarage Happy Mode: Curved Bottom Eyelids + Laugh Shaking)
-        eye_w = 56;
-        eye_h = 56;
-        border_r = 28;
+        case EXPR_SUSPICIOUS: // 6. Suspicious (Side-eye Glance)
+            eye_w = 42; eye_h = 24; radius = 10;
+            left_x = -70; right_x = 30; // Looking far left
+            color_left = 0x00E5FF; color_right = 0x00E5FF;
+            break;
 
-        // Laugh Shaking (Up/Down vertical shiver)
-        if (anim_frame % 2 == 0) eye_y += 4;
-        else eye_y -= 4;
+        case EXPR_IAM: // 7. I am / Proud Arrogant Look
+            eye_w = 52; eye_h = 14; radius = 6;
+            color_left = 0x00FF99; color_right = 0x00FF99;
+            eye_y = -8;
+            break;
 
-        // Happy Smiling Bottom Eyelids
-        lv_obj_set_style_bg_opa(eyelid_bottom_left, LV_OPA_COVER, 0);
-        lv_obj_set_style_bg_opa(eyelid_bottom_right, LV_OPA_COVER, 0);
+        case EXPR_YOUMADEMEE: // 8. You Made Me (Raging Red Eyes)
+            eye_w = 60; eye_h = 36; radius = 10;
+            color_left = 0xFF0000; color_right = 0xFF0000;
+            if (anim_frame % 2 == 0) left_x += 2; else left_x -= 2;
+            break;
 
-        if ((anim_frame / 3) % 2 == 0) {
-            lv_obj_set_style_bg_color(eye_left, lv_color_hex(0xFFD700), 0); // Gold
-            lv_obj_set_style_bg_color(eye_right, lv_color_hex(0xFFD700), 0);
-        } else {
-            lv_obj_set_style_bg_color(eye_left, lv_color_hex(0xFF007F), 0); // Neon Pink
-            lv_obj_set_style_bg_color(eye_right, lv_color_hex(0xFF007F), 0);
-        }
+        case EXPR_WONDER: // 9. Wonder / Curious (Uneven Eyes)
+            eye_w = 54; eye_h = 54;
+            lv_obj_set_size(eye_left, 54, 54);
+            lv_obj_set_size(eye_right, 36, 36);
+            color_left = 0x00E5FF; color_right = 0x00E5FF;
+            eye_y = -6;
+            break;
 
-    } else {
-        // IDLE MOOD + AUTOBBLINKER
-        lv_obj_set_style_bg_color(eye_left, lv_color_hex(0x00E5FF), 0);
-        lv_obj_set_style_bg_color(eye_right, lv_color_hex(0x00E5FF), 0);
+        case EXPR_DOWN: // 10. Look Down
+            eye_y = 12;
+            break;
 
-        // Auto Blink Logic (Blink every 15 frames)
-        if (anim_frame % 15 == 0) {
-            eye_h = 6;
-            border_r = 3;
-        }
+        case EXPR_RIGHT: // 11. Look Right
+            left_x = -35; right_x = 65;
+            break;
+
+        case EXPR_LEFT: // 12. Look Left
+            left_x = -65; right_x = 35;
+            break;
+
+        case EXPR_UP: // 13. Look Up
+            eye_y = -12;
+            break;
+
+        case EXPR_BLINK: // 14. Blink
+            eye_h = 6; radius = 3;
+            break;
+
+        case EXPR_NORMAL: // 0. Normal Idle Loop (Blink & Gaze cycle)
+        default:
+            if (anim_frame % 15 == 0) {
+                eye_h = 6; radius = 3;
+            } else if ((anim_frame / 20) % 4 == 1) {
+                left_x = -65; right_x = 35; // Look Left
+            } else if ((anim_frame / 20) % 4 == 3) {
+                left_x = -35; right_x = 65; // Look Right
+            }
+            break;
     }
 
-    // Apply Eye Sizes & Positions
     lv_obj_set_size(eye_left, eye_w, eye_h);
     lv_obj_set_size(eye_right, eye_w, eye_h);
-    lv_obj_set_style_radius(eye_left, border_r, 0);
-    lv_obj_set_style_radius(eye_right, border_r, 0);
+    lv_obj_set_style_radius(eye_left, radius, 0);
+    lv_obj_set_style_radius(eye_right, radius, 0);
+    lv_obj_set_style_bg_color(eye_left, lv_color_hex(color_left), 0);
+    lv_obj_set_style_bg_color(eye_right, lv_color_hex(color_right), 0);
 
-    lv_obj_align(eye_left, LV_ALIGN_CENTER, left_eye_x, eye_y);
-    lv_obj_align(eye_right, LV_ALIGN_CENTER, right_eye_x, eye_y);
+    lv_obj_align(eye_left, LV_ALIGN_CENTER, left_x, eye_y);
+    lv_obj_align(eye_right, LV_ALIGN_CENTER, right_x, eye_y);
 }
 
 static void ui_update_cb(lv_timer_t* timer) {
     g_timer.update();
 
-    update_fluxgarage_roboeyes();
+    update_akno_expressions();
 
     // Update 120px Bold Digital Segments
     uint32_t rem = g_timer.get_remaining_seconds();
@@ -241,7 +286,7 @@ void ui_timer_init() {
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
     // ==========================================
-    // 1. TOP SECTION: FluxGarage RoboEyes Container (~120px)
+    // 1. TOP SECTION: Akno 15 Expression Robot Eyes Container (~120px)
     // ==========================================
     lv_obj_t* top_box = lv_obj_create(scr);
     lv_obj_set_size(top_box, 440, 110);
@@ -250,7 +295,6 @@ void ui_timer_init() {
     lv_obj_set_style_border_width(top_box, 0, 0);
     lv_obj_clear_flag(top_box, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Left & Right Eye Objects
     eye_left = lv_obj_create(top_box);
     lv_obj_set_size(eye_left, 48, 48);
     lv_obj_set_style_bg_color(eye_left, lv_color_hex(0x00E5FF), 0);
@@ -265,7 +309,6 @@ void ui_timer_init() {
     lv_obj_set_style_border_width(eye_right, 0, 0);
     lv_obj_clear_flag(eye_right, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Top Eyelid Overlays (Angry / Focused)
     eyelid_top_left = lv_obj_create(top_box);
     lv_obj_set_style_bg_color(eyelid_top_left, lv_color_hex(0x0B0D14), 0);
     lv_obj_set_style_border_width(eyelid_top_left, 0, 0);
@@ -276,7 +319,6 @@ void ui_timer_init() {
     lv_obj_set_style_border_width(eyelid_top_right, 0, 0);
     lv_obj_clear_flag(eyelid_top_right, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Bottom Eyelid Overlays (Happy Smiling Arc)
     eyelid_bottom_left = lv_obj_create(top_box);
     lv_obj_set_size(eyelid_bottom_left, 44, 20);
     lv_obj_align_to(eyelid_bottom_left, eye_left, LV_ALIGN_BOTTOM_MID, 0, 4);
@@ -291,7 +333,6 @@ void ui_timer_init() {
     lv_obj_set_style_radius(eyelid_bottom_right, 10, 0);
     lv_obj_set_style_border_width(eyelid_bottom_right, 0, 0);
 
-    // Sweat Drop (Crying / Paused animation)
     sweat_drop = lv_obj_create(top_box);
     lv_obj_set_size(sweat_drop, 10, 16);
     lv_obj_set_style_bg_color(sweat_drop, lv_color_hex(0x00E5FF), 0);

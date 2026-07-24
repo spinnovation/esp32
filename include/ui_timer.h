@@ -5,6 +5,6 @@
 
 void ui_timer_init();
 void ui_timer_update();
-void ui_clock_set_time(const char* time_str);
+void ui_set_expression(int expr_id);
 
 #endif // UI_TIMER_H
