@@ -10,7 +10,6 @@ static lv_obj_t* label_notice;
 static lv_timer_t* ui_refresh_timer;
 
 static void update_clock_display() {
-    // Current uptime based clock simulation or RTC/NTP time
     unsigned long sec = millis() / 1000;
     uint32_t hours = (11 + (sec / 3600)) % 24;
     uint32_t mins = (sec / 60) % 60;
@@ -106,9 +105,9 @@ void ui_timer_init() {
 
     label_notice = lv_label_create(bottom_card);
     lv_obj_set_style_text_color(label_notice, lv_color_hex(0x00E5FF), 0);
-    lv_obj_set_style_text_font(label_notice, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(label_notice, &lv_font_montserrat_20, 0);
     lv_obj_align(label_notice, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(label_notice, "안녕하세요 승필님");
+    lv_label_set_text(label_notice, "WELCOME SEUNGPIL!");
 
     // Refresh UI every 200ms
     ui_refresh_timer = lv_timer_create(ui_update_cb, 200, NULL);

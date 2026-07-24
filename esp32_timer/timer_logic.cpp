@@ -4,28 +4,28 @@ TimerLogic g_timer;
 
 TimerLogic::TimerLogic() 
     : state(TIMER_STOPPED), total_seconds(3000), remaining_seconds(3000), last_tick_ms(0) {
-    snprintf(custom_message, sizeof(custom_message), "안녕하세요 승필님");
+    snprintf(custom_message, sizeof(custom_message), "WELCOME SEUNGPIL!");
 }
 
 void TimerLogic::begin(uint32_t default_seconds) {
     total_seconds = default_seconds;
     remaining_seconds = default_seconds;
     state = TIMER_STOPPED;
-    snprintf(custom_message, sizeof(custom_message), "안녕하세요 승필님");
+    snprintf(custom_message, sizeof(custom_message), "WELCOME SEUNGPIL!");
 }
 
 void TimerLogic::start() {
     if (state != TIMER_RUNNING) {
         state = TIMER_RUNNING;
         last_tick_ms = millis();
-        snprintf(custom_message, sizeof(custom_message), "🔥 50분 집중 시간이 시작되었습니다");
+        snprintf(custom_message, sizeof(custom_message), "FOCUS TIME (50 MIN)");
     }
 }
 
 void TimerLogic::pause() {
     if (state == TIMER_RUNNING) {
         state = TIMER_PAUSED;
-        snprintf(custom_message, sizeof(custom_message), "⏸️ 타이머가 일시 정지되었습니다");
+        snprintf(custom_message, sizeof(custom_message), "TIMER PAUSED");
     }
 }
 
@@ -40,7 +40,7 @@ void TimerLogic::toggle() {
 void TimerLogic::reset() {
     state = TIMER_STOPPED;
     remaining_seconds = total_seconds;
-    snprintf(custom_message, sizeof(custom_message), "안녕하세요 승필님");
+    snprintf(custom_message, sizeof(custom_message), "WELCOME SEUNGPIL!");
 }
 
 void TimerLogic::set_duration(uint32_t seconds) {
@@ -77,7 +77,7 @@ void TimerLogic::update() {
             } else {
                 remaining_seconds = 0;
                 state = TIMER_FINISHED;
-                snprintf(custom_message, sizeof(custom_message), "🎉 수고하셨습니다! 50분 완료되었습니다");
+                snprintf(custom_message, sizeof(custom_message), "WORK COMPLETE! REST TIME");
                 
                 // Auto Reset after finished
                 delay(3000);
