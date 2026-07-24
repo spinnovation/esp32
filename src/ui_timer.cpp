@@ -8,7 +8,6 @@ static lv_obj_t* label_timer;
 static lv_obj_t* label_notice;
 static lv_timer_t* ui_refresh_timer;
 
-static uint8_t eye_anim_state = 0;
 static uint16_t eye_timer_count = 0;
 
 // Animated Cute Robot Eyes
@@ -58,7 +57,7 @@ static void ui_update_cb(lv_timer_t* timer) {
     // Update Cute Robot Eyes Animation
     update_robot_eyes();
 
-    // Update 80% Massive Timer Number
+    // Update 50-Min Timer Number
     char time_buf[16];
     g_timer.get_formatted_time(time_buf, sizeof(time_buf));
     lv_label_set_text(label_timer, time_buf);
@@ -110,12 +109,11 @@ void ui_timer_init() {
     lv_obj_set_style_line_width(line1, 2, 0);
 
     // ==========================================
-    // 2. MIDDLE SECTION: Massive 80% Countdown Number (~240px)
+    // 2. MIDDLE SECTION: Crisp Large Timer Number (Unclipped)
     // ==========================================
     label_timer = lv_label_create(scr);
     lv_obj_set_style_text_color(label_timer, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_text_font(label_timer, &lv_font_montserrat_48, 0);
-    lv_obj_set_style_transform_zoom(label_timer, 420, 0); // Scale 80% massive size
     lv_obj_align(label_timer, LV_ALIGN_CENTER, 0, -5);
 
     // ==========================================
