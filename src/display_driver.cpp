@@ -3,13 +3,13 @@
 #include <Arduino_GFX_Library.h>
 
 // ST7701S 3-Wire SWSPI Data Bus
-Arduino_DataBus *bus = new Arduino_SWSPI(
+static Arduino_DataBus *bus = new Arduino_SWSPI(
     GFX_NOT_DEFINED /* DC */, TFT_CS /* 39 */,
     TFT_SCK /* 48 */, TFT_SDA /* 47 */, GFX_NOT_DEFINED /* MISO */
 );
 
-// ESP32-S3 RGB Panel Config for ESP32_4848S040 4.0" IPS Display
-Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
+// ESP32-S3 RGB Panel Configuration (34 arguments for Arduino_GFX 1.6.7)
+static Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     TFT_DE /* 18 */, TFT_VSYNC /* 17 */, TFT_HSYNC /* 16 */, TFT_PCLK /* 21 */,
     TFT_R0 /* 11 */, TFT_R1 /* 12 */, TFT_R2 /* 13 */, TFT_R3 /* 14 */, TFT_R4 /* 0 */,
     TFT_G0 /* 8 */, TFT_G1 /* 20 */, TFT_G2 /* 3 */, TFT_G3 /* 46 */, TFT_G4 /* 9 */, TFT_G5 /* 10 */,
@@ -20,8 +20,8 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     0 /* de_idle_high */, 0 /* pclk_idle_high */, 0 /* bounce_buffer_size_px */
 );
 
-// Arduino RGB Display with Rotation 3 and ST7701 Type 9 init operations (designed for 4848S040)
-Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
+// Arduino RGB Display with Rotation 3 and Type 9 init (designed for 4848S040)
+static Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     LCD_WIDTH, LCD_HEIGHT, rgbpanel, 3 /* rotation: 3 is upright */, true /* auto_flush */,
     bus, GFX_NOT_DEFINED /* RST */, st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
 );
@@ -45,12 +45,13 @@ void init_display() {
     gfx->begin();
     gfx->fillScreen(RGB565_BLACK);
 
-    disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LCD_WIDTH * 200, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    // Checkpoint 2: Allocate 40-line LVGL buffer (38,400 bytes) in SPIRAM/SRAM to preserve memory for Touch thread
+    disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LCD_WIDTH * 40, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (!disp_draw_buf) {
-        disp_draw_buf = (lv_color_t *)malloc(sizeof(lv_color_t) * LCD_WIDTH * 200);
+        disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LCD_WIDTH * 40, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     }
 
-    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, LCD_WIDTH * 200);
+    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, LCD_WIDTH * 40);
 
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);

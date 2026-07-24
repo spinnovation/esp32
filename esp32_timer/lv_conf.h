@@ -8,6 +8,11 @@
 #define LV_USE_PERF_MONITOR 0
 #define LV_USE_MEM_MONITOR 0
 
+/* Critical LVGL Tick Source from Arduino millis() */
+#define LV_TICK_CUSTOM 1
+#define LV_TICK_CUSTOM_INCLUDE "Arduino.h"
+#define LV_TICK_CUSTOM_SYS_TIME_EXPR (millis())
+
 /* Memory manager */
 #define LV_MEM_CUSTOM 0
 #define LV_MEM_SIZE (64 * 1024U)
