@@ -3,7 +3,7 @@
 TimerLogic g_timer;
 
 TimerLogic::TimerLogic() 
-    : state(TIMER_STOPPED), total_seconds(3000), remaining_seconds(3000), last_tick_ms(0) {
+    : state(TIMER_STOPPED), total_seconds(3000), remaining_seconds(3000), last_tick_ms(0), finish_time_ms(0) {
     snprintf(custom_message, sizeof(custom_message), "WELCOME SEUNGPIL!");
 }
 
@@ -11,6 +11,7 @@ void TimerLogic::begin(uint32_t default_seconds) {
     total_seconds = default_seconds;
     remaining_seconds = default_seconds;
     state = TIMER_STOPPED;
+    finish_time_ms = 0;
     snprintf(custom_message, sizeof(custom_message), "WELCOME SEUNGPIL!");
 }
 
@@ -40,6 +41,7 @@ void TimerLogic::toggle() {
 void TimerLogic::reset() {
     state = TIMER_STOPPED;
     remaining_seconds = total_seconds;
+    finish_time_ms = 0;
     snprintf(custom_message, sizeof(custom_message), "WELCOME SEUNGPIL!");
 }
 
@@ -77,12 +79,13 @@ void TimerLogic::update() {
             } else {
                 remaining_seconds = 0;
                 state = TIMER_FINISHED;
+                finish_time_ms = current_ms;
                 snprintf(custom_message, sizeof(custom_message), "WORK COMPLETE! REST TIME");
-                
-                // Auto Reset after finished
-                delay(3000);
-                reset();
             }
+        }
+    } else if (state == TIMER_FINISHED) {
+        if (millis() - finish_time_ms >= 4000) { // Auto reset 4 seconds after finishing (non-blocking)
+            reset();
         }
     }
 }

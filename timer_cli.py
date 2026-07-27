@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-import serial, sys, tty, termios, time
+import serial, sys, tty, termios, time, glob
 
-PORT = '/dev/cu.usbserial-1140'
+def find_esp32_port():
+    ports = glob.glob('/dev/cu.usbserial*') + glob.glob('/dev/cu.usbmodem*')
+    if ports:
+        return ports[0]
+    return '/dev/cu.usbserial-2240'
+
+PORT = find_esp32_port()
 BAUD = 115200
 
 print("=" * 60)
-print(" ⏱️ ESP32-S3 50분 타이머 & GIF 표정 맥 키보드 컨트롤러")
+print(f" ⏱️ ESP32-S3 50분 타이머 & GIF 표정 맥 키보드 컨트롤러 ({PORT})")
 print("=" * 60)
 print(" [ 스페이스바 / S ] : 타이머 시작 / 일시정지 (TOGGLE)")
 print(" [ R ]             : 50분 리셋 (Reset)")
@@ -20,7 +26,7 @@ try:
     ser = serial.Serial(PORT, BAUD, timeout=0.5)
     time.sleep(1.0)
 except Exception as e:
-    print(f"❌ 포트 연결 실패: {e}")
+    print(f"❌ 포트 연결 실패 ({PORT}): {e}")
     sys.exit(1)
 
 def getch():

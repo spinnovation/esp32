@@ -35,6 +35,7 @@ private:
     uint32_t total_seconds;
     uint32_t remaining_seconds;
     unsigned long last_tick_ms;
+    unsigned long finish_time_ms;
     char custom_message[128];
 };
 
