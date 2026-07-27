@@ -2,8 +2,9 @@
 import os
 from PIL import Image, ImageSequence
 
-exp_dir = '/Users/onkistudio/software/esp32/expression'
-out_header = '/Users/onkistudio/software/esp32/include/gif_data.h'
+base_dir = os.path.dirname(os.path.abspath(__file__))
+exp_dir = os.path.join(base_dir, 'expression')
+out_header = os.path.join(base_dir, 'include', 'gif_data.h')
 
 target_w, target_h = 300, 92  # Fills ~85% of top section height
 
@@ -18,7 +19,7 @@ gif_results = {}
 for key, fname in gifs.items():
     fpath = os.path.join(exp_dir, fname)
     if not os.path.exists(fpath):
-        print(f"ERROR: {fname} missing")
+        print(f"ERROR: {fname} missing at {fpath}")
         continue
 
     im = Image.open(fpath)
